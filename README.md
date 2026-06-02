@@ -99,3 +99,9 @@ O UNM2000 é uma aplicação **NetBeans Platform** em Java. O instalador Windows
 | `unmplatform/modules/ext/fcache.jar` | idem |
 
 Os patches são distribuídos no formato **bsdiff** — requerem o JAR original para serem aplicados e não contêm nenhum byte proprietário por si só.
+
+---
+
+## Notas
+
+A engenharia reversa dos patches, análise de bytecode, investigação das incompatibilidades com Java 21 e desenvolvimento do instalador foram feitos com o auxílio do [Claude Code](https://claude.ai/code) (Anthropic).
