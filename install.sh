@@ -184,6 +184,8 @@ for d in \
     break
   fi
 done
+# Corrige dialogs AWT invisíveis em WMs sem reparenting (i3, sway, etc.)
+export _JAVA_AWT_WM_NONREPARENTING=1
 cd /opt/unm2000/app
 exec bin/unm2000access
 EOF
@@ -203,6 +205,7 @@ EOF
 
   chmod -R a+rX "$INSTALL_DIR"
   chmod -R u+w  "$INSTALL_DIR"
+  chmod +x "$INSTALL_DIR/app/bin/unm2000access"
 
   echo ""
   info "UNM2000 instalado com sucesso!"

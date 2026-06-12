@@ -90,15 +90,40 @@ O UNM2000 é uma aplicação **NetBeans Platform** em Java. O instalador Windows
 | JAR | Patch |
 |---|---|
 | `platform/lib/boot.jar` | `TopSecurityManager.install()` → no-op (Java 21 removeu `setSecurityManager`) |
-| `unmplatform/modules/com-fiberhome-core.jar` | Métodos `exit()`/`exitNormal()`/`exitToLogin()` → no-op; `matchVersion()` → sempre true |
+| `platform/lib/org-openide-util-lookup.jar` | `ActiveQueue$Impl.removeSuper()` → timeout > 0 (fix CPU 100%, ver v1.1) |
+| `unmplatform/modules/com-fiberhome-core.jar` | `SystemExitAction.exit/exitNormal` reconstruídos (fix saída travada, ver v1.1); `ExitUtils.exitToLogin()` → no-op; `matchVersion()` → sempre true |
 | `unmplatform/modules/com-fiberhome-authentication.jar` | Callbacks de heartbeat → no-op (evitam crash ao expirar sessão ICE) |
 | `unmplatform/modules/com-fiberhome-component.jar` | `WindowsComboBoxUI` → `MetalComboBoxUI` (classe inexistente no Linux/OpenJDK) |
+| `unmplatform/modules/ext/jide-common.jar` | Shim de `sun.swing.plaf.synth.SynthIcon` (fix tela cinza, ver v1.1) |
 | `unmplatform/modules/ext/Ice.jar` | `halt()` → `goto` (ZeroC ICE matava o JVM em timeouts de rede) |
 | `unmplatform/modules/ext/IceGridGUI.jar` | idem |
 | `unmplatform/modules/ext/Freeze.jar` | idem |
 | `unmplatform/modules/ext/fcache.jar` | idem |
 
 Os patches são distribuídos no formato **bsdiff** — requerem o JAR original para serem aplicados e não contêm nenhum byte proprietário por si só.
+
+---
+
+## Changelog
+
+### v1.1 (2026-06-10)
+
+Quatro correções validadas em produção:
+
+- **CPU 100% constante** — Thread `ActiveQueue$Impl` (NetBeans platform) entrava em spin infinito no JDK 19+ porque `ReferenceQueue.remove(0)` passou a delegar para o método virtual sobrescrito. Patch usa `super.remove(86400000L)` para evitar a delegação. (`platform/lib/org-openide-util-lookup.jar`)
+- **App não fechava após confirmar saída** — `SystemExitAction.exit()` e `exitNormal()` ficaram vazios no pipeline original. Classes reconstruídas com `LifecycleManager.exit()` + watchdog `Runtime.halt(0)` em 15s. (`unmplatform/modules/com-fiberhome-core.jar`)
+- **Resource → Query → Query ONU não abria** — `InaccessibleObjectException` em `BasicComboBoxUI.arrowButton` + `IllegalAccessError` em `sun.jvmstat.monitor`. Resolvido por flags JPMS no `unm2000access.conf`:
+  - `--add-opens=java.desktop/javax.swing.plaf.basic=ALL-UNNAMED`
+  - `--add-exports=jdk.internal.jvmstat/sun.jvmstat.monitor=ALL-UNNAMED`
+- **Tela cinza/sobreposta ao ordenar coluna** — JIDE pintava seta de ordenação usando `sun.swing.plaf.synth.SynthIcon`, classe interna removida no JDK 9+. Adicionado shim com a classe abstrata do JDK 8 ao `jide-common.jar`.
+
+Outras mudanças:
+- `_JAVA_AWT_WM_NONREPARENTING=1` exportado no launcher (corrige dialogs invisíveis em i3/sway).
+- `chmod +x` explícito em `app/bin/unm2000access` (unrar removia o bit).
+
+### v1.0 (2026-06-01)
+
+Lançamento inicial: 8 patches bsdiff cobrindo SecurityManager, ICE, Freeze/fcache, WindowsComboBoxUI e métodos `exit*`/`matchVersion`.
 
 ---
 
