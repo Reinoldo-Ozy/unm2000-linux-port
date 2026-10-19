@@ -108,7 +108,7 @@ O UNM2000 é uma aplicação **NetBeans Platform** em Java. O instalador Windows
 | `unmplatform/modules/com-fiberhome-core.jar` | `SystemExitAction.exit/exitNormal` reconstruídos (fix saída travada, ver v1.1); `ExitUtils.exitToLogin()` → no-op; `matchVersion()` → sempre true |
 | `unmplatform/modules/com-fiberhome-authentication.jar` | Callbacks de heartbeat → no-op (evitam crash ao expirar sessão ICE) |
 | `unmplatform/modules/com-fiberhome-component.jar` | `WindowsComboBoxUI` → `MetalComboBoxUI` (classe inexistente no Linux/OpenJDK) |
-| `unmplatform/modules/com-fiberhome-busclient.jar` | `IceHelper.findClass` → fallback multi-classloader (fix diálogo "RPC request can't be decoded" no 1º login do dia, ver v1.3) |
+| `unmplatform/modules/com-fiberhome-busclient.jar` | `IceHelper.findClass` → fallback multi-classloader (fix diálogo "RPC request can't be decoded" no 1º login do dia, ver v1.3.1) |
 | `unmplatform/modules/com-fiberhome-nm.jar` | `ObjectTreeProvider.getBoardBeans()`/`refreshBusinessProvider()` → guarda de `rootNode` nulo (fix NPE quando chega mensagem de status de porta com a janela da NE já fechada, ver v1.3.1) |
 | `unmplatform/modules/com-fiberhome-cm.jar` | `OntListTopComponent.getNmObjectTree()` → devolve null quando o `NmFrame` já saiu do mapa (fix NPE ao fechar a aba de lista de ONU, ver v1.3.1) |
 | `unm2000access/modules/com-fiberhome-nm-anm.jar` | `PortStatusPanel.componentClosed()` acrescentado (chama `super` + `onClose()` → desfaz assinaturas ao fechar a janela, ver v1.3.1); `TreePopup.hide()` → devolve o foco ao editor da caixa de busca (fix campo que travava no nome da config aberta, ver v1.3.1) |
