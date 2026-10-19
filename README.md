@@ -100,6 +100,7 @@ O UNM2000 é uma aplicação **NetBeans Platform** em Java. O instalador Windows
 | `unmplatform/modules/com-fiberhome-core.jar` | `SystemExitAction.exit/exitNormal` reconstruídos (fix saída travada, ver v1.1); `ExitUtils.exitToLogin()` → no-op; `matchVersion()` → sempre true |
 | `unmplatform/modules/com-fiberhome-authentication.jar` | Callbacks de heartbeat → no-op (evitam crash ao expirar sessão ICE) |
 | `unmplatform/modules/com-fiberhome-component.jar` | `WindowsComboBoxUI` → `MetalComboBoxUI` (classe inexistente no Linux/OpenJDK) |
+| `unmplatform/modules/com-fiberhome-busclient.jar` | `IceHelper.findClass` → fallback multi-classloader (fix diálogo "RPC request can't be decoded" no 1º login do dia, ver v1.3) |
 | `unmplatform/modules/ext/jide-common.jar` | Shims de `sun.swing.plaf.synth.SynthIcon` (fix tela cinza, ver v1.1) e `com.sun.java.swing.plaf.windows.WindowsLookAndFeel` (fix repaint de styled labels, ver v1.2) |
 | `unmplatform/modules/ext/Ice.jar` | `halt()` → `goto` (ZeroC ICE matava o JVM em timeouts de rede) |
 | `unmplatform/modules/ext/IceGridGUI.jar` | idem |
@@ -123,6 +124,11 @@ Instalações existentes: reaplicar o template em `/opt/unm2000/app/etc/unm2000a
 ---
 
 ## Changelog
+
+### v1.3 (2026-10-19)
+
+- **Diálogo "The services are forwarded transparently (the RPC request can't be decoded)" no 1º login do dia** — `IceHelper.findClass` (em `com-fiberhome-busclient.jar`) resolve classes das respostas RPC usando **apenas o TCCL da thread**. Na primeira execução do dia o pool do SwingWorker ainda tem `MainImpl$BootClassLoader` como TCCL, e pacotes publicados entre módulos (ex.: `unmapi.security.*`) não aparecem no search path → `ClassNotFoundException` → o cliente converte em erro ICE 9 e mostra o diálogo; no 2º login o pool já está aquecido e funciona. Patch adiciona cache de classes + fallback: loader do próprio módulo → classloaders dos módulos NetBeans (`Modules.findCodeNameBase`). Comportamento normal inalterado (caminho TCCL continua o primeiro).
+- Requer limpar `~/.unm2000access/dev/var/cache` após atualizar o jar (patch em jar de módulo).
 
 ### v1.2 (2026-07-14)
 
