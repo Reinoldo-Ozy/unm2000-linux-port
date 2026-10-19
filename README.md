@@ -138,7 +138,7 @@ Instalações existentes: reaplicar o template em `/opt/unm2000/app/etc/unm2000a
 
 ### ⚠️ v1.3 (2026-10-19) — NÃO USE, substituída pela v1.3.1
 
-O `patches/unmplatform/modules/com-fiberhome-busclient.jar.bsdiff` publicado na v1.3 foi gerado recompilando `IceHelper` a partir da saída de decompilador; isso corrompeu o `writeObject` (o ramo de `HashMap` passou a chamar `write(OutputStream, HashMap)`, método que não existe) e quebrava o marshalling de todo request com map — status das OLTs e a busca (Ctrl+F) deixavam de funcionar, com `CODE_MASHALL_EXCEPTION` no log. A v1.3.1 regenera o patch por injeção cirúrgica de bytecode e traz as correções de fechamento de janela.
+O `patches/unmplatform/modules/com-fiberhome-busclient.jar.bsdiff` publicado na v1.3 foi gerado recompilando `IceHelper` a partir da saída de decompilador; isso corrompeu o `writeObject` (o ramo de `HashMap` passou a chamar `write(OutputStream, HashMap)`, método que não existe) e quebrava o marshalling de todo request com map — status das OLTs e a busca (Ctrl+F) deixavam de funcionar, com `CODE_MASHALL_EXCEPTION` no log. A v1.3 teve apenas a tag no git (nunca teve página de release) e essa tag foi **removida do repositório** em 19/10/2026 para que ninguém a instalasse — o histórico dela fica no commit `89801a6` e nesta seção. As versões anteriores (`v1.1`, `v1.2`, `v1.2.1`) continuam publicadas: quem roda uma delas precisa saber o que cada uma continha. A v1.3.1 regenera o patch por injeção cirúrgica de bytecode e traz as correções de fechamento de janela.
 
 ### v1.3.1 (2026-10-19)
 
