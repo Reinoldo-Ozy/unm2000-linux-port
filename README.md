@@ -109,6 +109,9 @@ O UNM2000 é uma aplicação **NetBeans Platform** em Java. O instalador Windows
 | `unmplatform/modules/com-fiberhome-authentication.jar` | Callbacks de heartbeat → no-op (evitam crash ao expirar sessão ICE) |
 | `unmplatform/modules/com-fiberhome-component.jar` | `WindowsComboBoxUI` → `MetalComboBoxUI` (classe inexistente no Linux/OpenJDK) |
 | `unmplatform/modules/com-fiberhome-busclient.jar` | `IceHelper.findClass` → fallback multi-classloader (fix diálogo "RPC request can't be decoded" no 1º login do dia, ver v1.3) |
+| `unmplatform/modules/com-fiberhome-nm.jar` | `ObjectTreeProvider.getBoardBeans()`/`refreshBusinessProvider()` → guarda de `rootNode` nulo (fix NPE quando chega mensagem de status de porta com a janela da NE já fechada, ver v1.3.1) |
+| `unmplatform/modules/com-fiberhome-cm.jar` | `OntListTopComponent.getNmObjectTree()` → devolve null quando o `NmFrame` já saiu do mapa (fix NPE ao fechar a aba de lista de ONU, ver v1.3.1) |
+| `unm2000access/modules/com-fiberhome-nm-anm.jar` | `PortStatusPanel.componentClosed()` acrescentado (chama `super` + `onClose()` → desfaz assinaturas ao fechar a janela, ver v1.3.1); `TreePopup.hide()` → devolve o foco ao editor da caixa de busca (fix campo que travava no nome da config aberta, ver v1.3.1) |
 | `unmplatform/modules/ext/jide-common.jar` | Shims de `sun.swing.plaf.synth.SynthIcon` (fix tela cinza, ver v1.1) e `com.sun.java.swing.plaf.windows.WindowsLookAndFeel` (fix repaint de styled labels, ver v1.2) |
 | `unmplatform/modules/ext/Ice.jar` | `halt()` → `goto` (ZeroC ICE matava o JVM em timeouts de rede) |
 | `unmplatform/modules/ext/IceGridGUI.jar` | idem |
@@ -133,10 +136,27 @@ Instalações existentes: reaplicar o template em `/opt/unm2000/app/etc/unm2000a
 
 ## Changelog
 
+### ⚠️ v1.3 (2026-10-19) — NÃO USE, substituída pela v1.3.1
+
+O `patches/unmplatform/modules/com-fiberhome-busclient.jar.bsdiff` publicado na v1.3 foi gerado recompilando `IceHelper` a partir da saída de decompilador; isso corrompeu o `writeObject` (o ramo de `HashMap` passou a chamar `write(OutputStream, HashMap)`, método que não existe) e quebrava o marshalling de todo request com map — status das OLTs e a busca (Ctrl+F) deixavam de funcionar, com `CODE_MASHALL_EXCEPTION` no log. A v1.3.1 regenera o patch por injeção cirúrgica de bytecode e traz as correções de fechamento de janela.
+
+### v1.3.1 (2026-10-19)
+
+Quatro patches regenerados/criados por injeção de bytecode (ASM do próprio app), cada um validado com diff de `javap` método a método contra o jar original + verificação de link no JVM antes de instalar:
+
+- **`com-fiberhome-busclient.jar`** — `IceHelper.findClass` com fallback de classloader (correto; substitui o patch quebrado da v1.3). No 1º login do dia o `SwingWorker` pool herda `MainImpl$BootClassLoader` como TCCL e `unmapi.security.OnlineUserInfoIceHelper` não resolvia → diálogo *"the RPC request can't be decoded"*.
+- **`com-fiberhome-nm.jar`** — guarda de `rootNode` em `getBoardBeans()`/`refreshBusinessProvider()`: com a janela da NE fechada, as mensagens de status de porta caíam em NPE.
+- **`com-fiberhome-nm-anm.jar`** — (a) `PortStatusPanel.componentClosed()` inexistente: o `onClose()` que desfaz `MsgDispather`/lamp listeners só era chamado por `BlockDiagram.clearData()`, caminho exclusivo do `DeviceViewTopComponent`, então fechar a janela pela via normal deixava a painel assinado; (b) `TreePopup.hide()` devolvia o popup mas não o foco → a caixa de busca da árvore de configuração (ex.: *PON Service*) travava no nome da config aberta até apertar ESC.
+- **`com-fiberhome-cm.jar`** — `OntListTopComponent.getNmObjectTree()`: `getNmFrame(neId).getTopWorkSpace()` sem checar o frame (removido antes do `componentClosed()` dos painéis), NPE a cada fechamento de aba de ONU.
+- **`extras/unm2000access.conf.template`** — `-J--add-opens=java.desktop/javax.swing=ALL-UNNAMED`: sem isso, *copiar célula* da tabela morria em `InaccessibleObjectException` (o código captura só as excessões do Java 8). Em instalação existente basta reaplicar o conf e reiniciar — não precisa limpar cache.
+
+Instalação existente: atualize os 4 jars e **limpe `~/.unm2000access/dev/var/cache`** (são jars de módulo; a 1ª abertura reconstrói o cache, 2–5 min).
+
 ### v1.3 (2026-10-19)
 
 - **Diálogo "The services are forwarded transparently (the RPC request can't be decoded)" no 1º login do dia** — `IceHelper.findClass` (em `com-fiberhome-busclient.jar`) resolve classes das respostas RPC usando **apenas o TCCL da thread**. Na primeira execução do dia o pool do SwingWorker ainda tem `MainImpl$BootClassLoader` como TCCL, e pacotes publicados entre módulos (ex.: `unmapi.security.*`) não aparecem no search path → `ClassNotFoundException` → o cliente converte em erro ICE 9 e mostra o diálogo; no 2º login o pool já está aquecido e funciona. Patch adiciona cache de classes + fallback: loader do próprio módulo → classloaders dos módulos NetBeans (`Modules.findCodeNameBase`). Comportamento normal inalterado (caminho TCCL continua o primeiro).
 - Requer limpar `~/.unm2000access/dev/var/cache` após atualizar o jar (patch em jar de módulo).
+- **Copiar célula de tabela não funcionava** — `FieldCopyAction.getClipboard()` (`com-fiberhome-core.jar`) usa `setAccessible` no campo privado `javax.swing.TransferHandler$TransferAction.SandboxClipboardKey` e só captura as excessões do Java 8 (`IllegalArgumentException`/`IllegalAccessException`/`NoSuchFieldException`); no Java 21 o bloqueio chega como `InaccessibleObjectException` (um `RuntimeException`), escapa e mata a ação. Corrigido por flag no `unm2000access.conf`: `--add-opens=java.desktop/javax.swing=ALL-UNNAMED` (não requer limpar cache; basta reiniciar).
 ### v1.2.1 (2026-08-09)
 
 Correção no instalador. Nenhuma mudança nos patches — quem já tem o UNM2000 instalado não precisa reinstalar.
