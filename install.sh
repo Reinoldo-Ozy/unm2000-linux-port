@@ -54,8 +54,26 @@ install_deps() {
       [ $need_unrar  -eq 1 ] && dnf install -y unrar
       [ $need_bsdiff -eq 1 ] && dnf install -y bsdiff
     elif check_dep pacman; then
-      [ $need_unrar  -eq 1 ] && pacman -S --noconfirm unrar
-      [ $need_bsdiff -eq 1 ] && pacman -S --noconfirm bsdiff
+      [ $need_unrar -eq 1 ] && pacman -S --noconfirm unrar
+      # bsdiff só existe no AUR — não há pacote nos repositórios oficiais do
+      # Arch, e helpers de AUR se recusam a rodar como root, que é como este
+      # script sempre roda. Então instruímos e saímos, em vez de falhar num
+      # "target not found" do pacman.
+      if [ $need_bsdiff -eq 1 ]; then
+        echo ""
+        warn "bsdiff não está nos repositórios oficiais do Arch, só no AUR."
+        echo ""
+        echo "  Instale como usuário normal (NÃO com sudo) e rode este script de novo:"
+        echo ""
+        echo "    paru -S bsdiff        # ou: yay -S bsdiff"
+        echo ""
+        echo "  Sem helper de AUR:"
+        echo ""
+        echo "    git clone https://aur.archlinux.org/bsdiff.git"
+        echo "    cd bsdiff && makepkg -si"
+        echo ""
+        exit 1
+      fi
     elif check_dep zypper; then
       [ $need_unrar  -eq 1 ] && zypper install -y unrar
       [ $need_bsdiff -eq 1 ] && zypper install -y bsdiff

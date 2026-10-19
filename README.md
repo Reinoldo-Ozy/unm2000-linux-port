@@ -18,6 +18,14 @@ Roda o cliente **UNM2000** (FiberHome NMS) nativamente no Linux com Java 21, sem
 | bsdiff | qualquer versão recente |
 | Instalador original | `unm2000_Client_en.exe` (FiberHome) |
 
+O `install.sh` instala `unrar` e `bsdiff` sozinho no Debian/Ubuntu, Fedora e openSUSE.
+**No Arch não há pacote `bsdiff` nos repositórios oficiais** — ele só existe no AUR, e
+helpers de AUR não rodam como root. Instale antes, como usuário normal:
+
+```bash
+paru -S bsdiff        # ou: yay -S bsdiff
+```
+
 ---
 
 ## Instalação
@@ -129,6 +137,12 @@ Instalações existentes: reaplicar o template em `/opt/unm2000/app/etc/unm2000a
 
 - **Diálogo "The services are forwarded transparently (the RPC request can't be decoded)" no 1º login do dia** — `IceHelper.findClass` (em `com-fiberhome-busclient.jar`) resolve classes das respostas RPC usando **apenas o TCCL da thread**. Na primeira execução do dia o pool do SwingWorker ainda tem `MainImpl$BootClassLoader` como TCCL, e pacotes publicados entre módulos (ex.: `unmapi.security.*`) não aparecem no search path → `ClassNotFoundException` → o cliente converte em erro ICE 9 e mostra o diálogo; no 2º login o pool já está aquecido e funciona. Patch adiciona cache de classes + fallback: loader do próprio módulo → classloaders dos módulos NetBeans (`Modules.findCodeNameBase`). Comportamento normal inalterado (caminho TCCL continua o primeiro).
 - Requer limpar `~/.unm2000access/dev/var/cache` após atualizar o jar (patch em jar de módulo).
+### v1.2.1 (2026-08-09)
+
+Correção no instalador. Nenhuma mudança nos patches — quem já tem o UNM2000 instalado não precisa reinstalar.
+
+- **`install.sh` abortava no Arch Linux** — a branch do `pacman` chamava `pacman -S --noconfirm bsdiff`, que falha com *"target not found"*: não existe pacote `bsdiff` nos repositórios oficiais do Arch, ele só está no AUR. E helpers de AUR se recusam a rodar como root, que é como o script sempre roda. Agora o caso é detectado e o script aponta `paru`/`yay`/`makepkg` antes de sair, no mesmo padrão que `check_java` já usava para o Java 21.
+- README: a seção de requisitos avisa que no Arch o `bsdiff` precisa ser instalado à mão, antes de rodar o instalador.
 
 ### v1.2 (2026-07-14)
 
